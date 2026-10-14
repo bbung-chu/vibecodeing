@@ -5,6 +5,7 @@ import { createServerSupabase, requireUser } from "@/lib/supabase/server";
 import { findOverlaps, validateSlot } from "@/lib/domain/slots";
 import type { Slot } from "@/lib/domain/types";
 import { deleteCourseWithObjects } from "./delete";
+import { courseNameError } from "./name";
 import { listCourses } from "./queries";
 import { persistCourse } from "./save";
 import { COURSE_COLORS } from "./palette";
@@ -26,8 +27,9 @@ export async function saveCourse(
   input: SaveInput,
 ): Promise<{ id?: string; error?: string; overlaps?: Slot[] }> {
   const user = await requireUser();
-  const name = (input.name ?? "").trim();
-  if (name.length === 0 || name.length > 50) return { error: "강의 이름을 입력해 주세요" };
+  const name = typeof input.name === "string" ? input.name.trim() : "";
+  const nameError = courseNameError(name);
+  if (nameError) return { error: nameError };
   if (!Array.isArray(input.slots) || input.slots.length === 0) {
     return { error: "수업 시간을 하나 이상 넣어 주세요" };
   }

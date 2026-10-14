@@ -79,7 +79,7 @@ export function CourseForm({ semesterId, courses, course, defaultColor, onDone }
     >
       <label className="flex flex-col gap-1">
         강의 이름
-        <input value={name} onChange={(e) => setName(e.target.value)} className={field} />
+        <input value={name} maxLength={50} onChange={(e) => setName(e.target.value)} className={field} />
       </label>
       <label className="flex flex-col gap-1">
         교수님

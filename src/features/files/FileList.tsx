@@ -28,10 +28,16 @@ export function FileList({ files }: { files: FileRow[] }) {
 
   async function preview(id: string) {
     setError(null);
+    // Open the tab inside the click: after the await, Safari's popup blocker would refuse it.
+    // "noopener" can't be passed here (open would return null), so cut the opener link by hand.
+    const tab = window.open("", "_blank");
+    if (tab) tab.opener = null;
     try {
+      if (!tab) throw new Error("popup blocked");
       const url = await getFileUrl(id, "preview");
-      window.open(url, "_blank", "noopener,noreferrer");
+      tab.location.href = url;
     } catch {
+      tab?.close();
       setError("파일을 열지 못했어요. 다시 시도해 주세요");
     }
   }

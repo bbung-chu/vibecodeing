@@ -19,7 +19,11 @@ export default defineConfig({
       use: {
         ...devices["Desktop Chrome"],
         // Optional: point at a preinstalled Chromium whose revision differs from Playwright's.
-        launchOptions: { executablePath: process.env.PW_CHROMIUM_PATH || undefined },
+        // A UTF-8 locale keeps Chromium from replacing non-ASCII download names (Korean) with "download".
+        launchOptions: {
+          executablePath: process.env.PW_CHROMIUM_PATH || undefined,
+          env: { ...process.env, LANG: "C.UTF-8", LC_ALL: "C.UTF-8" } as Record<string, string>,
+        },
       },
     },
   ],

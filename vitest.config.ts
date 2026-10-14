@@ -7,6 +7,7 @@ export default defineConfig({
   },
   test: {
     include: ["tests/unit/**/*.test.ts", "tests/db/**/*.test.ts"],
+    fileParallelism: false,
     exclude: ["e2e/**", "node_modules/**"],
   },
 });

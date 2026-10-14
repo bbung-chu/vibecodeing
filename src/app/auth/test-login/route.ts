@@ -14,12 +14,6 @@ async function signIn(request: Request, email: string | null, password: string |
   return NextResponse.redirect(new URL("/", request.url), 303);
 }
 
-export async function GET(request: Request) {
-  if (!enabled()) return new NextResponse("Not Found", { status: 404 });
-  const { searchParams } = new URL(request.url);
-  return signIn(request, searchParams.get("email"), searchParams.get("password"));
-}
-
 export async function POST(request: Request) {
   if (!enabled()) return new NextResponse("Not Found", { status: 404 });
   const body = (await request.json().catch(() => ({}))) as { email?: string; password?: string };

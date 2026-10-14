@@ -66,4 +66,27 @@ describe("persistCourse", () => {
     const { data } = await user.client.from("courses").select("id").eq("name", "Orphan");
     expect(data).toHaveLength(0);
   });
+
+  it("renames the course's midterm and final titles with the course", async () => {
+    const created = await persistCourse(user.client, user.userId, { semesterId, fields: fields("운영체제"), slots: [goodSlot] });
+    const ins = await user.client.from("events").insert([
+      { course_id: created.id, kind: "midterm", title: "운영체제 중간고사", starts_at: "2026-10-20T01:00:00Z" },
+      { course_id: created.id, kind: "final", title: "운영체제 기말고사", starts_at: "2026-12-15T01:00:00Z" },
+      { course_id: created.id, kind: "assignment", title: "운영체제 과제", starts_at: "2026-11-01T01:00:00Z" },
+    ]);
+    expect(ins.error).toBeNull();
+    const result = await persistCourse(user.client, user.userId, {
+      id: created.id,
+      semesterId,
+      fields: fields("운영체제론"),
+      slots: [goodSlot],
+    });
+    expect(result.error).toBeUndefined();
+    const { data } = await user.client.from("events").select("kind, title").eq("course_id", created.id!).order("kind");
+    expect(data).toEqual([
+      { kind: "assignment", title: "운영체제 과제" },
+      { kind: "final", title: "운영체제론 기말고사" },
+      { kind: "midterm", title: "운영체제론 중간고사" },
+    ]);
+  });
 });

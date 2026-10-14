@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { createServerSupabase, requireUser } from "@/lib/supabase/server";
 import { kstLocalToUtcIso } from "@/lib/domain/kst";
+import { examTitle } from "./kinds";
 
 const BAD_DATE = "날짜와 시간을 올바르게 입력해 주세요";
-const EXAM_LABEL = { midterm: "중간고사", final: "기말고사" } as const;
 
 function toUtc(local: unknown): string | null {
   if (typeof local !== "string") return null;
@@ -29,7 +29,7 @@ async function ownedCourseName(courseId: string, userId: string): Promise<string
 
 /**
  * Sets (upserts) a course's midterm/final to `startsAt` (KST "YYYY-MM-DDTHH:MM"), or removes it when null.
- * The title is "{강의명} 중간고사"/"기말고사" at write time; it is not updated if the course is renamed later.
+ * The title is "{강의명} 중간고사"/"기말고사"; renaming the course updates it (see persistCourse).
  */
 export async function setExam(
   courseId: string,
@@ -53,7 +53,7 @@ export async function setExam(
   } else {
     const iso = toUtc(startsAt);
     if (!iso) return { error: BAD_DATE };
-    const title = `${courseName} ${EXAM_LABEL[kind]}`;
+    const title = examTitle(courseName, kind);
     const { data: existing } = await supabase
       .from("events")
       .select("id")

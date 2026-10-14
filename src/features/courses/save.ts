@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Slot } from "@/lib/domain/types";
+import { examTitle } from "@/features/events/kinds";
 
 type Fields = { name: string; professor: string | null; room: string | null; color: string };
 
@@ -8,7 +9,8 @@ const COURSE_ERROR = "강의를 저장하지 못했어요";
 
 /**
  * Persists a course and replaces its slots without ever leaving it half-saved.
- * Edit: new slots are inserted first, old ones (captured beforehand) deleted after.
+ * Edit: new slots are inserted first, old ones (captured beforehand) deleted after; the
+ * midterm/final titles follow the course name.
  * Create: if the slot insert fails, the just-created course row is removed.
  */
 export async function persistCourse(
@@ -30,6 +32,15 @@ export async function persistCourse(
       .select("id")
       .maybeSingle();
     if (error || !data) return { error: COURSE_ERROR };
+    for (const kind of ["midterm", "final"] as const) {
+      const { error: titleError } = await client
+        .from("events")
+        .update({ title: examTitle(input.fields.name, kind) })
+        .eq("course_id", courseId)
+        .eq("kind", kind)
+        .eq("user_id", userId);
+      if (titleError) return { error: COURSE_ERROR };
+    }
     const { data: old, error: oldError } = await client
       .from("course_slots")
       .select("id")

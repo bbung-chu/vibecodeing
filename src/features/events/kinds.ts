@@ -8,6 +8,9 @@ export const KIND_LABEL: Record<EventKind, string> = {
   personal: "개인",
 };
 
+/** Title of a course's midterm/final event, e.g. "운영체제 중간고사". Kept in sync when the course is renamed. */
+export const examTitle = (courseName: string, kind: "midterm" | "final") => `${courseName} ${KIND_LABEL[kind]}`;
+
 /** Fixed colors for standalone events; course events use their course color. */
 export const STANDALONE_CLASS: Record<"contest" | "personal", string> = {
   contest: "bg-amber-200 text-amber-950",

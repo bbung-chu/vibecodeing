@@ -107,3 +107,37 @@ export async function deleteEvent(id: string): Promise<void> {
   if (error) throw error;
   revalidatePath("/", "layout");
 }
+
+/** Adds or edits a contest/personal event (no course). Course events can't be created or changed here. */
+export async function saveStandaloneEvent(input: {
+  id?: string;
+  kind: "contest" | "personal";
+  title: string;
+  startsAt: string;
+}): Promise<{ error?: string }> {
+  const user = await requireUser();
+  const kind: unknown = input?.kind;
+  if (kind !== "contest" && kind !== "personal") return { error: "일정 종류를 확인해 주세요" };
+  const title = typeof input.title === "string" ? input.title.trim() : "";
+  if (title.length === 0 || title.length > 100) return { error: "일정 이름을 입력해 주세요" };
+  const iso = toUtc(input.startsAt);
+  if (!iso) return { error: BAD_DATE };
+  const supabase = await createServerSupabase();
+
+  if (input.id) {
+    const { data, error } = await supabase
+      .from("events")
+      .update({ kind, title, starts_at: iso })
+      .eq("id", input.id)
+      .eq("user_id", user.id)
+      .in("kind", ["contest", "personal"])
+      .select("id");
+    if (error) return { error: "저장하지 못했어요. 다시 시도해 주세요" };
+    if (!data || data.length === 0) return { error: "일정을 찾을 수 없어요" };
+  } else {
+    const { error } = await supabase.from("events").insert({ kind, title, starts_at: iso });
+    if (error) return { error: "저장하지 못했어요. 다시 시도해 주세요" };
+  }
+  revalidatePath("/", "layout");
+  return {};
+}

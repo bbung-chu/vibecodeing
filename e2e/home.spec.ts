@@ -37,6 +37,7 @@ async function seed(email: string, monday: Date) {
   if (slotError) throw slotError;
   const { error: eventError } = await client.from("events").insert([
     { course_id: course.id, kind: "midterm", title: "운영체제 중간고사", starts_at: at(monday, 1, "01:00:00") },
+    { course_id: course.id, kind: "assignment", title: "1차 보고서", starts_at: at(monday, 2, "03:00:00") },
     { kind: "contest", title: "캡스톤 공모전", starts_at: at(monday, 4, "03:00:00") },
     { kind: "personal", title: "어제 일정", starts_at: at(monday, -1, "03:00:00") },
   ]);
@@ -62,10 +63,15 @@ test("home: today's classes and upcoming events", async ({ page }) => {
 
   const upcoming = page.getByRole("region", { name: "다가오는 일정" });
   const rows = upcoming.getByTestId("home-event");
-  await expect(rows).toHaveCount(2);
+  await expect(rows).toHaveCount(3);
   await expect(rows.nth(0)).toContainText("운영체제 중간고사");
   await expect(rows.nth(0)).toContainText("D-1");
-  await expect(rows.nth(1)).toContainText("캡스톤 공모전");
+  // course events name their course (with its color dot)
+  await expect(rows.nth(1)).toContainText("1차 보고서");
+  await expect(rows.nth(1).getByTestId("event-course")).toHaveText("운영체제");
+  await expect(rows.nth(1).getByTestId("event-course-dot")).toHaveCSS("background-color", "rgb(96, 165, 250)");
+  await expect(rows.nth(2)).toContainText("캡스톤 공모전");
+  await expect(rows.nth(2).getByTestId("event-course")).toHaveCount(0);
   await expect(rows.nth(0)).toContainText("중간고사");
   await expect(upcoming).not.toContainText("어제 일정");
   expect(problems.filter((t) => /hydrat|did not match/i.test(t))).toEqual([]);

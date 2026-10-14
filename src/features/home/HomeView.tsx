@@ -51,6 +51,17 @@ export function HomeView({ courses, events }: { courses: Course[]; events: Event
               const body = (
                 <>
                   <span className="rounded bg-slate-100 px-2 py-0.5 text-sm text-slate-700">{KIND_LABEL[e.kind]}</span>
+                  {e.courseName && (
+                    <span className="flex items-center gap-1.5 text-sm text-slate-600">
+                      <span
+                        data-testid="event-course-dot"
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ backgroundColor: e.color ?? undefined }}
+                        aria-hidden
+                      />
+                      <span data-testid="event-course">{e.courseName}</span>
+                    </span>
+                  )}
                   <span className="font-medium">{e.title}</span>
                   <span className="text-slate-600">{local.slice(0, 10)} {local.slice(11)}</span>
                   <span className="ml-auto font-semibold">{formatDday(ddayCount(new Date(e.startsAt), now))}</span>

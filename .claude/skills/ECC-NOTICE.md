@@ -1,0 +1,1 @@
+Skills in this folder (api-design, security-review, coding-standards, git-workflow, make-interfaces-feel-better, e2e-testing) are copied from https://github.com/affaan-m/ECC at commit b92f181 under the MIT license in ECC-LICENSE.

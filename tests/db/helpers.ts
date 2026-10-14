@@ -1,35 +1,15 @@
-import { execSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { loadSupabaseEnv } from "../../scripts/supabase-env";
 
 type LocalEnv = { url: string; anonKey: string };
 
 let cached: LocalEnv | undefined;
 
-/** Env vars win; otherwise read the running local stack via `supabase status`. */
 function loadEnv(): LocalEnv {
   if (cached) return cached;
-  let url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  let anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  let serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !anonKey || !serviceKey) {
-    const out = execSync("npx supabase status -o env", {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-    const parsed: Record<string, string> = {};
-    for (const line of out.split("\n")) {
-      const m = line.match(/^([A-Z0-9_]+)="?(.*?)"?$/);
-      if (m) parsed[m[1]] = m[2];
-    }
-    url ??= parsed.API_URL;
-    anonKey ??= parsed.ANON_KEY;
-    serviceKey ??= parsed.SERVICE_ROLE_KEY;
-  }
-  if (!url || !anonKey || !serviceKey) {
-    throw new Error("Local Supabase is not running (npx supabase start)");
-  }
+  const { url, anonKey, serviceKey } = loadSupabaseEnv();
   process.env.NEXT_PUBLIC_SUPABASE_URL = url;
   process.env.SUPABASE_SERVICE_ROLE_KEY = serviceKey;
   cached = { url, anonKey };

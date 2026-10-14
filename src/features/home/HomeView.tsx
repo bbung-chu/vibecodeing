@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ddayCount, formatDday, todayClasses, upcomingEvents } from "@/lib/domain/dday";
 import { utcIsoToKstLocal } from "@/lib/domain/kst";
 import type { Course } from "@/lib/domain/types";
@@ -9,10 +10,13 @@ import type { EventWithCourse } from "@/features/events/queries";
 
 /** Computes with the browser clock so the KST day is right regardless of the server's clock or timezone. */
 export function HomeView({ courses, events }: { courses: Course[]; events: EventWithCourse[] }) {
-  const now = new Date();
+  // Set after mount so the server render never depends on the server clock.
+  const [now, setNow] = useState<Date | null>(null);
+  useEffect(() => setNow(new Date()), []);
+  if (!now) return <h1 className="text-2xl font-bold">홈</h1>;
+
   const classes = todayClasses(courses, now);
-  const byId = new Map(events.map((e) => [e.id, e]));
-  const upcoming = upcomingEvents(events, now).map((e) => byId.get(e.id)!);
+  const upcoming = upcomingEvents(events, now);
 
   return (
     <div className="space-y-8">

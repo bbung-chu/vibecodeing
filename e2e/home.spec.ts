@@ -47,6 +47,9 @@ test("home: today's classes and upcoming events", async ({ page }) => {
   test.setTimeout(120_000);
   const monday = nextMonday();
   await page.clock.setFixedTime(monday);
+  const problems: string[] = [];
+  page.on("console", (m) => m.type() === "error" && problems.push(m.text()));
+  page.on("pageerror", (e) => problems.push(e.message));
   const email = uniqueEmail("home");
   await login(page, email);
   await seed(email, monday);
@@ -63,7 +66,9 @@ test("home: today's classes and upcoming events", async ({ page }) => {
   await expect(rows.nth(0)).toContainText("운영체제 중간고사");
   await expect(rows.nth(0)).toContainText("D-1");
   await expect(rows.nth(1)).toContainText("캡스톤 공모전");
+  await expect(rows.nth(0)).toContainText("중간고사");
   await expect(upcoming).not.toContainText("어제 일정");
+  expect(problems.filter((t) => /hydrat|did not match/i.test(t))).toEqual([]);
 });
 
 test("home: empty states", async ({ page }) => {

@@ -26,7 +26,7 @@ export function formatDday(n: number): string {
   return n > 0 ? `D-${n}` : `D+${-n}`;
 }
 
-export function upcomingEvents(events: AppEvent[], now: Date, days = 30): AppEvent[] {
+export function upcomingEvents<T extends AppEvent>(events: T[], now: Date, days = 30): T[] {
   return events
     .filter((e) => {
       const diff = ddayCount(new Date(e.startsAt), now);

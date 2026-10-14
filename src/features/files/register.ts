@@ -1,16 +1,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { MAX_FILE_BYTES, validateFile } from "@/lib/domain/files";
+import { MAX_FILE_BYTES, mimeTypeFor, validateFile } from "@/lib/domain/files";
 
 const BUCKET = "materials";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const UPLOAD_FAILED = "업로드에 실패했어요. 다시 시도해 주세요";
+const MAX_NAME_LENGTH = 200;
 
 export type RegisterInput = {
   courseId: string;
   fileId: string;
   name: string;
   size: number;
-  mimeType: string;
+  /** Ignored: the stored type is derived from the name's extension. */
+  mimeType?: string;
 };
 
 /**
@@ -30,12 +32,18 @@ export async function registerUploadCore(
   const storagePath = `${userId}/${courseId}/${fileId}`;
 
   const fail = async (error: string): Promise<{ error: string }> => {
-    const { data: existing } = await client.from("files").select("id").eq("storage_path", storagePath).maybeSingle();
-    if (!existing) await client.storage.from(BUCKET).remove([storagePath]);
+    const { data: existing, error: lookupError } = await client
+      .from("files")
+      .select("id")
+      .eq("storage_path", storagePath)
+      .maybeSingle();
+    // If we can't tell whether a row points at the object, keep it rather than risk deleting a registered file.
+    if (!lookupError && !existing) await client.storage.from(BUCKET).remove([storagePath]);
     return { error };
   };
 
   const name = typeof input.name === "string" ? input.name : "";
+  if (name.trim().length > MAX_NAME_LENGTH) return fail("파일 이름은 200자 이하로 해 주세요");
   const declared = validateFile({ name, size: Number.isFinite(input.size) ? input.size : 0 });
   if (!declared.ok) return fail(declared.reason);
 
@@ -63,7 +71,7 @@ export async function registerUploadCore(
     course_id: courseId,
     name: name.trim(),
     size_bytes: realSize,
-    mime_type: input.mimeType || null,
+    mime_type: mimeTypeFor(name),
     storage_path: storagePath,
   });
   if (insertError) return fail(UPLOAD_FAILED);

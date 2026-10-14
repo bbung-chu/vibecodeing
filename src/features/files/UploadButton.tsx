@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { validateFile } from "@/lib/domain/files";
+import { mimeTypeFor, validateFile } from "@/lib/domain/files";
 import { createBrowserSupabase } from "@/lib/supabase/client";
 import { registerUpload } from "./actions";
 
@@ -22,28 +22,39 @@ export function UploadButton({ courseId }: { courseId: string }) {
       return;
     }
     setBusy(true);
+    const supabase = createBrowserSupabase();
+    let uploadedPath: string | null = null;
+    // Best effort: an object without a row would only be cleaned up when the course is deleted.
+    const discardUpload = async () => {
+      if (uploadedPath) await supabase.storage.from("materials").remove([uploadedPath]).catch(() => undefined);
+    };
     try {
-      const supabase = createBrowserSupabase();
       const { data: auth } = await supabase.auth.getUser();
       if (!auth.user) {
         setError(UPLOAD_FAILED);
         return;
       }
       const fileId = crypto.randomUUID();
+      const path = `${auth.user.id}/${courseId}/${fileId}`;
+      // storage-js sends a Blob's own type, so re-wrap the file with the type pinned from its extension.
+      const contentType = mimeTypeFor(file.name);
       const { error: uploadError } = await supabase.storage
         .from("materials")
-        .upload(`${auth.user.id}/${courseId}/${fileId}`, file, { contentType: file.type || undefined, upsert: false });
+        .upload(path, new Blob([file], { type: contentType }), { contentType, upsert: false });
       if (uploadError) {
         setError(UPLOAD_FAILED);
         return;
       }
-      const res = await registerUpload({ courseId, fileId, name: file.name, size: file.size, mimeType: file.type });
+      uploadedPath = path;
+      const res = await registerUpload({ courseId, fileId, name: file.name, size: file.size });
       if (res.error) {
+        await discardUpload();
         setError(res.error);
         return;
       }
       router.refresh();
     } catch {
+      await discardUpload();
       setError(UPLOAD_FAILED);
     } finally {
       setBusy(false);

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { validateFile } from "@/lib/domain/files";
 import { createServerSupabase, requireUser } from "@/lib/supabase/server";
 import { registerUploadCore, type RegisterInput } from "./register";
+import { signFileUrl } from "./sign";
 
 const BUCKET = "materials";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -17,29 +18,27 @@ export async function registerUpload(input: RegisterInput): Promise<{ error?: st
   return res;
 }
 
+type OwnFile = { id: string; name: string; size_bytes: number | null; storage_path: string; mime_type: string | null };
+
 async function ownFile(id: string) {
   const user = await requireUser();
   const supabase = await createServerSupabase();
   if (typeof id !== "string" || !UUID.test(id)) return { supabase, user, file: null };
   const { data, error } = await supabase
     .from("files")
-    .select("id, name, size_bytes, storage_path")
+    .select("id, name, size_bytes, storage_path, mime_type")
     .eq("id", id)
     .eq("user_id", user.id)
     .maybeSingle();
   if (error) throw error;
-  return { supabase, user, file: data as { id: string; name: string; size_bytes: number | null; storage_path: string } | null };
+  return { supabase, user, file: data as OwnFile | null };
 }
 
-/** 60-second signed URL. Download mode keeps the original (Korean) file name. */
+/** 60-second signed URL; preview only for stored pdf/png/jpeg (see signFileUrl). */
 export async function getFileUrl(id: string, mode: "preview" | "download"): Promise<string> {
   const { supabase, file } = await ownFile(id);
   if (!file) throw new Error("File not found");
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(file.storage_path, 60, mode === "download" ? { download: file.name } : undefined);
-  if (error || !data) throw error ?? new Error("Could not sign URL");
-  return data.signedUrl;
+  return signFileUrl(supabase, file, mode);
 }
 
 export async function renameFile(id: string, name: string): Promise<{ error?: string }> {

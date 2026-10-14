@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { DeleteAccountButton } from "@/features/account/DeleteAccountButton";
 import { createServerSupabase } from "@/lib/supabase/server";
 
 const LINKS = [
@@ -34,6 +35,7 @@ export function Sidebar() {
           로그아웃
         </button>
       </form>
+      <DeleteAccountButton />
     </nav>
   );
 }

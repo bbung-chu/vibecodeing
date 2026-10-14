@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { loadSupabaseEnv } from "../scripts/supabase-env";
 import { kstDateKey, kstWeekday } from "../src/lib/domain/dday";
-import { E2E_PASSWORD, login, uniqueEmail } from "./helpers";
+import { E2E_PASSWORD, login, uniqueEmail, gotoReady } from "./helpers";
 
 const DAY_MS = 86_400_000;
 
@@ -53,7 +53,7 @@ test("home: today's classes and upcoming events", async ({ page }) => {
   const email = uniqueEmail("home");
   await login(page, email);
   await seed(email, monday);
-  await page.goto("/");
+  await gotoReady(page, "/");
 
   const classes = page.getByRole("region", { name: "오늘 수업" });
   await expect(classes).toContainText("운영체제");

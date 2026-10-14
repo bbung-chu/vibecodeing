@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { loadSupabaseEnv } from "../scripts/supabase-env";
 import { kstDateKey } from "../src/lib/domain/dday";
-import { E2E_PASSWORD, login, uniqueEmail } from "./helpers";
+import { E2E_PASSWORD, login, uniqueEmail, gotoReady, reloadReady } from "./helpers";
 
 const DAY_MS = 86_400_000;
 const FIXTURE_NAME = "운영체제 1주차.pdf";
@@ -22,7 +22,7 @@ test("main flow: semester, course, file, midterm, schedule, home, delete", async
   const userId = auth.user.id;
 
   // 1. semester + course
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await page.getByLabel("학년").selectOption("3");
   await page.getByLabel("학기", { exact: true }).selectOption("2");
   await page.getByRole("button", { name: "학기 추가" }).click();
@@ -36,7 +36,7 @@ test("main flow: semester, course, file, midterm, schedule, home, delete", async
   await expect(page.getByTestId("day-화").getByTestId("course-block")).toHaveCount(1);
 
   // 2. folder in the materials tree
-  await page.goto("/materials");
+  await gotoReady(page, "/materials");
   const tree = page.getByRole("list", { name: "강의 목록" });
   await expect(tree.getByText("3학년")).toBeVisible();
   await tree.getByRole("link", { name: "운영체제" }).click();
@@ -58,43 +58,40 @@ test("main flow: semester, course, file, midterm, schedule, home, delete", async
 
   // 4. midterm, 3 days from now (KST) so the home screen's 30-day window shows it
   const examDay = kstDateKey(new Date(Date.now() + 3 * DAY_MS));
-  await page.goto(`/courses/${courseId}`);
+  await gotoReady(page, `/courses/${courseId}`);
   const midterm = page.getByTestId("exam-midterm");
   const field = midterm.getByLabel("중간고사 일시");
   const save = midterm.getByRole("button", { name: "저장" });
-  // Saving is idempotent (one midterm per course). Retry the whole step if the click landed before
-  // hydration or the server action was slow; success means the value survives a reload.
-  await expect(async () => {
-    await field.fill(`${examDay}T10:00`);
-    if (await save.isEnabled()) await save.click({ timeout: 2_000 });
-    await expect(save).toBeDisabled({ timeout: 20_000 });
-    await page.reload();
-    await expect(field).toHaveValue(`${examDay}T10:00`, { timeout: 5_000 });
-  }).toPass({ timeout: 90_000 });
+  await expect(field).toHaveValue("");
+  await field.fill(`${examDay}T10:00`);
+  await expect(save).toBeEnabled();
+  await Promise.all([page.waitForResponse((r) => r.request().method() === "POST"), save.click()]);
+  await reloadReady(page);
+  await expect(field).toHaveValue(`${examDay}T10:00`);
 
   // 5. shown on 일정 and 홈
-  await page.goto("/schedule?view=list");
+  await gotoReady(page, "/schedule?view=list");
   await expect(page.getByTestId("event-row").filter({ hasText: "운영체제 중간고사" })).toHaveCount(1);
-  await page.goto("/");
+  await gotoReady(page, "/");
   const home = page.getByRole("region", { name: "다가오는 일정" }).getByTestId("home-event");
   await expect(home.filter({ hasText: "운영체제 중간고사" })).toHaveCount(1);
 
   // 6. delete the course behind the confirm dialog
-  await page.goto(`/courses/${courseId}`);
+  await gotoReady(page, `/courses/${courseId}`);
   await page.getByRole("button", { name: "강의 삭제" }).click();
   await expect(page.getByText("이 강의의 일정과 파일이 모두 지워져요. 삭제할까요?")).toBeVisible();
   await page.getByRole("dialog").getByRole("button", { name: "삭제" }).click();
   await expect(page).toHaveURL(/\/timetable$/);
 
   // 7. folder, event and file are gone
-  await page.goto("/materials");
+  await gotoReady(page, "/materials");
   await expect(page.getByRole("list", { name: "강의 목록" }).getByRole("link", { name: "운영체제" })).toHaveCount(0);
-  await page.goto(`/materials?course=${courseId}`);
+  await gotoReady(page, `/materials?course=${courseId}`);
   await expect(page.getByText("왼쪽에서 강의를 골라 주세요")).toBeVisible();
   await expect(rows).toHaveCount(0);
-  await page.goto("/schedule?view=list");
+  await gotoReady(page, "/schedule?view=list");
   await expect(page.getByTestId("event-row").filter({ hasText: "운영체제 중간고사" })).toHaveCount(0);
-  await page.goto("/");
+  await gotoReady(page, "/");
   await expect(home.filter({ hasText: "운영체제 중간고사" })).toHaveCount(0);
 
   // rows are gone for the user, and so is the storage object

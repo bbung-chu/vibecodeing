@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { loadSupabaseEnv } from "../scripts/supabase-env";
-import { E2E_PASSWORD, login, uniqueEmail } from "./helpers";
+import { E2E_PASSWORD, login, uniqueEmail, gotoReady, reloadReady } from "./helpers";
 
 const COURSE_COLOR = "#60a5fa"; // rgb(96, 165, 250)
 const DAY_MS = 86_400_000;
@@ -46,7 +46,7 @@ test("schedule: month calendar and list", async ({ page }) => {
   const { courseId } = await seed(email);
 
   // course event on 20 October, in the course color, linking to the course page
-  await page.goto("/schedule?view=month&month=2026-10");
+  await gotoReady(page, "/schedule?view=month&month=2026-10");
   await expect(page.getByRole("heading", { name: "2026년 10월" })).toBeVisible();
   const exam = page.getByTestId("day-2026-10-20").getByRole("link", { name: /운영체제 중간고사/ });
   await expect(exam).toBeVisible();
@@ -56,11 +56,11 @@ test("schedule: month calendar and list", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "운영체제" })).toBeVisible();
 
   // invalid month falls back to the current month (a heading with 년/월 is shown)
-  await page.goto("/schedule?month=2026-99");
+  await gotoReady(page, "/schedule?month=2026-99");
   await expect(page.getByRole("heading", { name: /^\d{4}년 \d{1,2}월$/ })).toBeVisible();
 
   // month navigation
-  await page.goto("/schedule?view=month&month=2026-10");
+  await gotoReady(page, "/schedule?view=month&month=2026-10");
   await page.getByRole("link", { name: "다음 달" }).click();
   await expect(page.getByRole("heading", { name: "2026년 11월" })).toBeVisible();
 
@@ -76,7 +76,7 @@ test("schedule: month calendar and list", async ({ page }) => {
   await page.getByRole("button", { name: "저장", exact: true }).click();
   const cell = page.getByTestId("day-2026-11-03");
   await expect(cell.getByRole("button", { name: /캡스톤 공모전/ })).toBeVisible();
-  await page.reload();
+  await reloadReady(page);
   await expect(cell.getByRole("button", { name: /캡스톤 공모전/ })).toBeVisible();
 
   // edit it

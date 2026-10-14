@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { HydrationMarker } from "@/components/HydrationMarker";
 
 export const metadata: Metadata = {
   title: "강의 정리",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <HydrationMarker />
+        {children}
+      </body>
     </html>
   );
 }

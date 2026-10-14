@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { login, uniqueEmail } from "./helpers";
+import { login, uniqueEmail, gotoReady } from "./helpers";
 
 async function addCourse(
   page: Page,
@@ -20,7 +20,7 @@ async function addCourse(
 
 test("timetable: add, overlap warning, invalid time, open course", async ({ page }) => {
   await login(page, uniqueEmail("tt"));
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await expect(page.getByText("아직 학기가 없어요. 학기를 추가해 주세요.")).toBeVisible();
   await expect(page.getByRole("button", { name: "강의 추가" })).toHaveCount(0);
 

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { login, uniqueEmail } from "./helpers";
+import { login, uniqueEmail, reloadReady } from "./helpers";
 
 async function addSemester(page: Page, year: string, term: string) {
   await page.getByLabel("학년").selectOption(year);
@@ -25,7 +25,7 @@ test("semester create, duplicate, switch, persist, delete", async ({ page }) => 
 
   await picker.selectOption({ label: "2학년 1학기" });
   await expect(picker.locator("option:checked")).toHaveText("2학년 1학기");
-  await page.reload();
+  await reloadReady(page);
   await expect(picker.locator("option:checked")).toHaveText("2학년 1학기");
 
   await page.getByRole("button", { name: "학기 삭제" }).click();

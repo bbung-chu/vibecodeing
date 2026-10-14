@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { setExam } from "./actions";
 
@@ -14,6 +14,9 @@ export function ExamFields({ courseId, kind, initial }: Props) {
   const [value, setValue] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  // Keep saving off until hydrated: before that the input shows the server value, not what was typed.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const label = `${LABEL[kind]} 일시`;
 
   const run = (next: string | null) =>
@@ -40,7 +43,7 @@ export function ExamFields({ courseId, kind, initial }: Props) {
       </label>
       <button
         type="button"
-        disabled={pending || value === ""}
+        disabled={!mounted || pending || value === ""}
         onClick={() => run(value)}
         className="rounded-md bg-blue-600 px-3 py-1 text-white disabled:opacity-50"
       >

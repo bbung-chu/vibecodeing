@@ -10,6 +10,21 @@ export function uniqueEmail(prefix: string): string {
   return `${prefix}-${randomUUID()}@example.com`;
 }
 
+/** Waits until React has hydrated (HydrationMarker), so client handlers are attached. */
+export async function waitForHydration(page: Page): Promise<void> {
+  await page.locator('html[data-hydrated="true"]').waitFor({ state: "attached" });
+}
+
+export async function gotoReady(page: Page, url: string): Promise<void> {
+  await page.goto(url);
+  await waitForHydration(page);
+}
+
+export async function reloadReady(page: Page): Promise<void> {
+  await page.reload();
+  await waitForHydration(page);
+}
+
 /** Creates the user (admin API) if needed, then signs in through /auth/test-login. */
 export async function login(page: Page, email: string): Promise<void> {
   const { url, serviceKey } = loadSupabaseEnv();
@@ -24,5 +39,5 @@ export async function login(page: Page, email: string): Promise<void> {
     data: { email, password: E2E_PASSWORD },
   });
   if (!res.ok()) throw new Error(`test-login failed: ${res.status()}`);
-  await page.goto("/");
+  await gotoReady(page, "/");
 }

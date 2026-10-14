@@ -42,6 +42,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=<출력의 ANON_KEY 값>
 ```
 
 `.env.example` 파일에 같은 이름의 빈 칸이 있으니 복사해서 채워도 됩니다.
+`.env.example` 에는 `SUPABASE_SERVICE_ROLE_KEY` 와 `E2E` 칸도 있는데, 이 둘은 로컬 테스트용입니다. **Vercel에는 절대 넣지 마세요.** 앱을 그냥 실행만 할 때는 위 두 값만 있으면 됩니다.
 `.env.local` 은 `.gitignore` 에 들어 있어서 git에 올라가지 않습니다. 그대로 유지하세요.
 
 ### 1-5. 앱 실행
@@ -129,8 +130,8 @@ Supabase 대시보드 **Authentication → URL Configuration** 에서:
 
 ## 보안 주의
 
-- **Vercel에 `E2E` 환경 변수를 절대 만들지 마세요.** `E2E=1` 이면 비밀번호만으로 들어가는 테스트 로그인 경로가 열립니다. 이 경로는 개발 모드에서만 동작하도록 막아 두었지만, 안전하게 아예 설정하지 않는 것이 원칙입니다. `E2E` 는 `npm run e2e` 가 로컬에서만 씁니다.
+- **Vercel에 `E2E` 환경 변수를 절대 만들지 마세요.** 테스트 로그인 경로(`/auth/test-login`)는 `E2E=1` 이면서 운영 모드(production)가 아닐 때만 동작하도록 코드로 막혀 있습니다. 그래도 안전하게 아예 설정하지 않는 것이 원칙입니다. `E2E` 는 `npm run e2e` 가 로컬에서만 씁니다.
 - **`SUPABASE_SERVICE_ROLE_KEY`(service-role 키)는 Vercel에도, `NEXT_PUBLIC_` 으로 시작하는 변수에도 넣지 마세요.** 이 키는 모든 보안 규칙을 무시하고 모든 사용자의 데이터를 읽고 지울 수 있습니다. `NEXT_PUBLIC_` 변수는 브라우저에 그대로 공개됩니다. 이 키는 로컬 테스트에서만 쓰입니다.
-- **운영 환경의 로그인은 구글 하나만 씁니다.** Supabase 대시보드 **Authentication → Sign In / Providers** 에서 **Email** 로그인(이메일/비밀번호 가입)은 꺼 둔 채로 두세요. 켜 두면 누구나 직접 계정을 만들 수 있습니다.
+- **운영 환경의 로그인은 구글 하나만 씁니다.** 새 Supabase 프로젝트는 이메일/비밀번호 가입(Email 제공자)이 **기본으로 켜져** 있습니다. 대시보드 **Authentication → Sign In / Providers → Email** 에서 꺼 주세요. 켜 두면 누구나 직접 계정을 만들 수 있습니다. (로컬 `supabase/config.toml` 은 로컬 테스트 때문에 이메일 가입을 켜 둔 것이고, 배포한 프로젝트에는 적용되지 않습니다.)
 - **`.env.local` 을 git에 올리지 마세요.** 이미 `.gitignore` 에 들어 있으니 `git add -f` 같은 강제 추가는 하지 않습니다. 실수로 키를 올렸다면 Supabase 대시보드에서 키를 즉시 재발급하세요.
 - **저장소 `materials` 는 비공개를 유지하세요.** 대시보드에서 Public으로 바꾸지 마세요. 파일은 60초짜리 임시 링크로만 열리고, 본인 파일만 접근할 수 있습니다.

@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { login, uniqueEmail } from "./helpers";
+import { login, uniqueEmail, gotoReady } from "./helpers";
 
 test("signed-out visit to /timetable lands on /login", async ({ page }) => {
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await expect(page).toHaveURL(/\/login$/);
   await expect(page.getByRole("button", { name: "구글로 계속하기" })).toBeVisible();
 });
@@ -16,6 +16,6 @@ test("signed-in user sees sidebar and can log out", async ({ page }) => {
   }
   await page.getByRole("button", { name: "로그아웃" }).click();
   await expect(page).toHaveURL(/\/login$/);
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await expect(page).toHaveURL(/\/login$/);
 });

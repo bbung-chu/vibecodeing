@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { login, uniqueEmail } from "./helpers";
+import { login, uniqueEmail, gotoReady, reloadReady } from "./helpers";
 
 const FIXTURE_NAME = "운영체제 1주차.pdf";
 // Passed as an in-memory payload so the Korean name survives any locale of the test runner.
@@ -14,7 +14,7 @@ const fixture = () => ({
 test("materials: upload, preview, download, rename, delete", async ({ page }, testInfo) => {
   test.setTimeout(120_000);
   await login(page, uniqueEmail("mat"));
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await page.getByLabel("학년").selectOption("2");
   await page.getByLabel("학기", { exact: true }).selectOption("1");
   await page.getByRole("button", { name: "학기 추가" }).click();
@@ -27,7 +27,7 @@ test("materials: upload, preview, download, rename, delete", async ({ page }, te
   await page.getByRole("button", { name: "저장", exact: true }).click();
   await expect(page.getByTestId("course-block").first()).toBeVisible();
 
-  await page.goto("/materials");
+  await gotoReady(page, "/materials");
   await expect(page.getByText("왼쪽에서 강의를 골라 주세요")).toBeVisible();
   const tree = page.getByRole("list", { name: "강의 목록" });
   await expect(tree.getByText("2학년")).toBeVisible();
@@ -38,9 +38,9 @@ test("materials: upload, preview, download, rename, delete", async ({ page }, te
 
   // an unknown course id shows the empty selection
   const url = page.url();
-  await page.goto("/materials?course=00000000-0000-4000-8000-000000000000");
+  await gotoReady(page, "/materials?course=00000000-0000-4000-8000-000000000000");
   await expect(page.getByText("왼쪽에서 강의를 골라 주세요")).toBeVisible();
-  await page.goto(url);
+  await gotoReady(page, url);
 
   // rejected client-side
   const input = page.getByTestId("file-input");
@@ -92,7 +92,7 @@ test("materials: upload, preview, download, rename, delete", async ({ page }, te
   await rows.filter({ hasText: "운영체제 요약.pdf" }).getByRole("button", { name: "삭제" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "삭제" }).click();
   await expect(rows).toHaveCount(1);
-  await page.reload();
+  await reloadReady(page);
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("운영체제 1주차.pdf");
 });

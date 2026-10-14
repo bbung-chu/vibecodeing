@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
-import { login, uniqueEmail } from "./helpers";
+import { login, uniqueEmail, gotoReady, reloadReady } from "./helpers";
 
 /** Click a button that fires a server action and wait for that POST to finish. */
 async function clickAndSettle(page: Page, button: Locator) {
@@ -9,7 +9,7 @@ async function clickAndSettle(page: Page, button: Locator) {
 test("course page: exams and assignments", async ({ page }) => {
   test.setTimeout(90_000); // dev server compiles routes on first hit; parallel specs make that slow
   await login(page, uniqueEmail("ev"));
-  await page.goto("/timetable");
+  await gotoReady(page, "/timetable");
   await page.getByLabel("학년").selectOption("2");
   await page.getByLabel("학기", { exact: true }).selectOption("1");
   await page.getByRole("button", { name: "학기 추가" }).click();
@@ -26,24 +26,24 @@ test("course page: exams and assignments", async ({ page }) => {
   const midterm = page.getByTestId("exam-midterm");
   await midterm.getByLabel("중간고사 일시").fill("2026-10-20T10:00");
   await clickAndSettle(page, midterm.getByRole("button", { name: "저장" }));
-  await page.reload();
+  await reloadReady(page);
   await expect(page.getByTestId("exam-midterm").getByLabel("중간고사 일시")).toHaveValue("2026-10-20T10:00");
 
   // change it: still a single midterm
   await page.getByTestId("exam-midterm").getByLabel("중간고사 일시").fill("2026-10-21T14:30");
   await clickAndSettle(page, page.getByTestId("exam-midterm").getByRole("button", { name: "저장" }));
-  await page.reload();
+  await reloadReady(page);
   await expect(page.getByTestId("exam-midterm").getByLabel("중간고사 일시")).toHaveValue("2026-10-21T14:30");
 
   // clear it
   await clickAndSettle(page, page.getByTestId("exam-midterm").getByRole("button", { name: "지우기" }));
-  await page.reload();
+  await reloadReady(page);
   await expect(page.getByTestId("exam-midterm").getByLabel("중간고사 일시")).toHaveValue("");
 
   // final exam is independent
   await page.getByTestId("exam-final").getByLabel("기말고사 일시").fill("2026-12-15T09:00");
   await clickAndSettle(page, page.getByTestId("exam-final").getByRole("button", { name: "저장" }));
-  await page.reload();
+  await reloadReady(page);
   await expect(page.getByTestId("exam-final").getByLabel("기말고사 일시")).toHaveValue("2026-12-15T09:00");
 
   // assignments, listed by deadline
@@ -68,7 +68,7 @@ test("course page: exams and assignments", async ({ page }) => {
 
   await rows.nth(0).getByRole("button", { name: "삭제" }).click();
   await expect(rows).toHaveCount(1);
-  await page.reload();
+  await reloadReady(page);
   await expect(rows).toHaveCount(1);
   await expect(rows.first()).toContainText("레포트 2");
 });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isPreviewable, validateFile } from '@/lib/domain/files';
+import { ALLOWED_EXTENSIONS, ALLOWED_MIME_TYPES, isPreviewable, isPreviewMime, mimeTypeFor, validateFile } from '@/lib/domain/files';
 
 describe('validateFile', () => {
   it('accepts upper-case extension', () => {
@@ -32,5 +32,33 @@ describe('isPreviewable', () => {
     expect(isPreviewable('x.jpeg')).toBe(true);
     expect(isPreviewable('x.pptx')).toBe(false);
     expect(isPreviewable('noext')).toBe(false);
+  });
+});
+
+describe('mimeTypeFor', () => {
+  it('derives the content type from the last extension, case-insensitive', () => {
+    expect(mimeTypeFor('SLIDES.PDF')).toBe('application/pdf');
+    expect(mimeTypeFor('a.png')).toBe('image/png');
+    expect(mimeTypeFor('a.jpg')).toBe('image/jpeg');
+    expect(mimeTypeFor('a.jpeg')).toBe('image/jpeg');
+    expect(mimeTypeFor('a.txt')).toBe('text/plain');
+    expect(mimeTypeFor('보고서.hwp')).toBe('application/x-hwp');
+    expect(mimeTypeFor('x.pdf.html')).toBe('application/octet-stream');
+    expect(mimeTypeFor('a.constructor')).toBe('application/octet-stream');
+  });
+  it('has a type for every allowed extension, and the allow-list is exactly those types', () => {
+    for (const ext of ALLOWED_EXTENSIONS) expect(mimeTypeFor(`a.${ext}`)).not.toBe('application/octet-stream');
+    expect([...ALLOWED_MIME_TYPES].sort()).toEqual([...new Set(ALLOWED_EXTENSIONS.map((e) => mimeTypeFor(`a.${e}`)))].sort());
+  });
+});
+
+describe('isPreviewMime', () => {
+  it('only pdf, png and jpeg preview', () => {
+    expect(isPreviewMime('application/pdf')).toBe(true);
+    expect(isPreviewMime('image/png')).toBe(true);
+    expect(isPreviewMime('image/jpeg')).toBe(true);
+    expect(isPreviewMime('text/html')).toBe(false);
+    expect(isPreviewMime('image/svg+xml')).toBe(false);
+    expect(isPreviewMime(null)).toBe(false);
   });
 });

@@ -6,6 +6,7 @@ import { findOverlaps, validateSlot } from "@/lib/domain/slots";
 import type { Slot } from "@/lib/domain/types";
 import { deleteCourseWithObjects } from "./delete";
 import { listCourses } from "./queries";
+import { persistCourse } from "./save";
 import { COURSE_COLORS } from "./palette";
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -59,52 +60,21 @@ export async function saveCourse(
     if (overlaps.length > 0) return { overlaps };
   }
 
-  const fields = {
-    name,
-    professor: input.professor?.trim() || null,
-    room: input.room?.trim() || null,
-    color: input.color,
-  };
-  let courseId = input.id;
-  if (courseId) {
-    const { data, error } = await supabase
-      .from("courses")
-      .update(fields)
-      .eq("id", courseId)
-      .eq("user_id", user.id)
-      .eq("semester_id", input.semesterId)
-      .select("id")
-      .maybeSingle();
-    if (error || !data) return { error: "강의를 저장하지 못했어요" };
-  } else {
-    const { data, error } = await supabase
-      .from("courses")
-      .insert({ ...fields, user_id: user.id, semester_id: input.semesterId })
-      .select("id")
-      .single();
-    if (error) return { error: "강의를 저장하지 못했어요" };
-    courseId = data.id as string;
-  }
-
-  const { error: delError } = await supabase
-    .from("course_slots")
-    .delete()
-    .eq("course_id", courseId)
-    .eq("user_id", user.id);
-  if (delError) return { error: "수업 시간을 저장하지 못했어요" };
-  const { error: insError } = await supabase.from("course_slots").insert(
-    slots.map((s) => ({
-      user_id: user.id,
-      course_id: courseId,
-      day_of_week: s.dayOfWeek,
-      start_time: s.start,
-      end_time: s.end,
-    })),
-  );
-  if (insError) return { error: "수업 시간을 저장하지 못했어요" };
+  const result = await persistCourse(supabase, user.id, {
+    id: input.id,
+    semesterId: input.semesterId,
+    fields: {
+      name,
+      professor: input.professor?.trim() || null,
+      room: input.room?.trim() || null,
+      color: input.color,
+    },
+    slots,
+  });
+  if (result.error) return { error: result.error };
 
   revalidatePath("/", "layout");
-  return { id: courseId };
+  return { id: result.id };
 }
 
 export async function deleteCourse(id: string): Promise<void> {

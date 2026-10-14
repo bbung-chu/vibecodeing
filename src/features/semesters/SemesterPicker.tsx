@@ -41,7 +41,10 @@ export function SemesterPicker({ semesters, currentId }: { semesters: Semester[]
           </select>
           <button
             type="button"
-            onClick={() => setConfirming(true)}
+            onClick={() => {
+              setError(null);
+              setConfirming(true);
+            }}
             className="rounded-md px-2 py-1 text-sm text-red-600 hover:bg-red-50"
           >
             학기 삭제
@@ -93,7 +96,13 @@ export function SemesterPicker({ semesters, currentId }: { semesters: Semester[]
           onCancel={() => setConfirming(false)}
           onConfirm={() => {
             setConfirming(false);
-            startTransition(() => deleteSemester(currentId));
+            startTransition(async () => {
+              try {
+                await deleteSemester(currentId);
+              } catch {
+                setError("삭제하지 못했어요. 다시 시도해 주세요");
+              }
+            });
           }}
         />
       )}

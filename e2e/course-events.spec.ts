@@ -67,6 +67,11 @@ test("course page: exams and assignments", async ({ page }) => {
   await expect(page.getByText("과제 이름을 입력해 주세요")).toBeVisible();
 
   await rows.nth(0).getByRole("button", { name: "삭제" }).click();
+  await expect(page.getByText("이 과제를 삭제할까요?")).toBeVisible();
+  await page.getByRole("dialog").getByRole("button", { name: "취소" }).click();
+  await expect(rows).toHaveCount(2);
+  await rows.nth(0).getByRole("button", { name: "삭제" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "삭제" }).click();
   await expect(rows).toHaveCount(1);
   await reloadReady(page);
   await expect(rows).toHaveCount(1);
